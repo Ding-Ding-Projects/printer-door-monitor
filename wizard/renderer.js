@@ -34,6 +34,9 @@ function h(tag, attrs = {}, ...kids) {
   return n;
 }
 
+// replaceChildren turns null into the text "null", so empty parts are dropped first.
+function fill(target, ...nodes) { target.replaceChildren(...nodes.filter(Boolean)); }
+
 function renderSteps() {
   document.getElementById('steps').replaceChildren(...STEPS.map((s, i) => h('span', { class: i === step ? 'on' : i < step ? 'done' : '', 'aria-current': i === step ? 'step' : null }, s)));
 }
@@ -49,7 +52,7 @@ async function show(n) {
   next.textContent = step === 2 ? 'Install' : step === 4 ? 'Close' : 'Next';
   next.disabled = false;
   if (step === 0) {
-    page.replaceChildren(h('h2', {}, 'Run the door monitor with Docker'),
+    fill(page, h('h2', {}, 'Run the door monitor with Docker'),
       h('p', {}, 'This puts the Printer Door Monitor on a computer with Docker: this computer, or a Docker host on your network reached over SSH. It pulls the published image, starts it with Docker Compose, waits for it to be healthy and checks its page from here.'),
       h('p', { class: 'hint' }, 'The printer IP, serial number and access code are not asked here. You enter them in the monitor\'s own setup page, which is password protected. An existing install keeps its settings and door log.'));
   } else if (step === 1) {
@@ -58,7 +61,7 @@ async function show(n) {
       h('div', {}, h('strong', {}, title), h('div', { class: 'hint' }, text)));
     const ssh = h('input', { type: 'text', id: 'ssh', value: choices.ssh, disabled: choices.target !== 'ssh', oninput: (e) => { choices.ssh = e.target.value.trim(); checked = null; next.disabled = true; } });
     const out = h('div', { id: 'check-out' });
-    page.replaceChildren(h('h2', {}, 'Where should it run?'),
+    fill(page, h('h2', {}, 'Where should it run?'),
       radio('ssh', 'A Docker host over SSH', 'Uses the ssh command and your existing SSH key. Docker Desktop on this computer provides the docker command.'),
       h('label', { for: 'ssh' }, 'SSH target'), ssh,
       radio('local', 'This computer', 'Uses Docker Desktop here.'),
@@ -68,7 +71,7 @@ async function show(n) {
   } else if (step === 2) {
     const port = h('input', { type: 'number', id: 'port', min: 1024, max: 65535, value: choices.port, oninput: (e) => { choices.port = Number(e.target.value); } });
     const tag = h('input', { type: 'text', id: 'tag', value: choices.tag, oninput: (e) => { choices.tag = e.target.value.trim() || 'latest'; } });
-    page.replaceChildren(h('h2', {}, 'Options'),
+    fill(page, h('h2', {}, 'Options'),
       h('label', { for: 'port' }, 'Port on ' + targetName()), port,
       h('p', { class: 'hint' }, 'The page will be at http://<host>:<port>/. 8790 is the default.'),
       h('label', { for: 'tag' }, 'Version'), tag,
@@ -78,13 +81,13 @@ async function show(n) {
     back.disabled = true;
     next.hidden = true;
     cancel.hidden = false;
-    page.replaceChildren(h('h2', {}, 'Installing on ' + targetName()),
+    fill(page, h('h2', {}, 'Installing on ' + targetName()),
       h('ul', { class: 'checks', id: 'phases' }, ['pull', 'start', 'health', 'lan'].map((p) => h('li', { id: 'ph-' + p }, '○ ' + { pull: 'Pull the image', start: 'Start with Docker Compose', health: 'Wait for the health check', lan: 'Open the page from this computer' }[p]))),
       h('pre', { id: 'log' }));
     install();
   } else {
     const ok = result && result.ok;
-    page.replaceChildren(h('h2', { class: ok ? 'ok' : 'bad' }, ok ? 'The door monitor is running' : 'Setup did not finish'),
+    fill(page, h('h2', { class: ok ? 'ok' : 'bad' }, ok ? 'The door monitor is running' : 'Setup did not finish'),
       ok ? h('p', {}, `Version ${result.version} on ${targetName()}.`) : h('p', {}, MESSAGES[result && result.step] || 'Something went wrong.'),
       ok ? h('p', {}, 'Open ', h('a', { href: '#', onclick: (e) => { e.preventDefault(); window.setup.openUrl(result.url); } }, result.url), ' and finish its setup: password, printer and chimes.') : null,
       result && result.step === 'cancelled' && result.started ? h('p', { class: 'hint' }, 'The monitor had already started and is still running.') : null);
@@ -95,7 +98,7 @@ async function show(n) {
 
 async function runCheck() {
   const out = document.getElementById('check-out');
-  out.replaceChildren(h('p', { class: 'hint' }, 'Checking ' + targetName() + '…'));
+  fill(out, h('p', { class: 'hint' }, 'Checking ' + targetName() + '…'));
   next.disabled = true;
   checked = await window.setup.check({ ...choices });
   renderCheck(out);
@@ -105,10 +108,10 @@ async function runCheck() {
 
 function renderCheck(out) {
   if (!checked.ok) {
-    out.replaceChildren(h('p', { class: 'bad' }, '✕ ' + MESSAGES[checked.step]), checked.detail ? h('pre', {}, checked.detail) : null);
+    fill(out, h('p', { class: 'bad' }, '✕ ' + MESSAGES[checked.step]), checked.detail ? h('pre', {}, checked.detail) : null);
     return;
   }
-  out.replaceChildren(h('ul', { class: 'checks' },
+  fill(out, h('ul', { class: 'checks' },
     h('li', { class: 'ok' }, '✓ ' + checked.docker),
     h('li', { class: 'ok' }, '✓ Docker Compose ' + checked.compose),
     h('li', { class: 'ok' }, '✓ Engine ' + checked.engine + ' on ' + targetName()),

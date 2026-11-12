@@ -7,6 +7,7 @@ rem   host.bat --logs                           start, then watch status and log
 rem   host.bat --stop                           stop the monitor (its data is kept)
 rem   host.bat --remote user@host               any of the above on a Docker host over SSH
 rem   host.bat --port 8790 --tag 1.0.0          host port and image version
+rem   host.bat --skip-pull                      use an image already on the host instead of pulling
 setlocal
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\host.ps1" %*
 set "code=%ERRORLEVEL%"

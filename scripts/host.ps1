@@ -14,6 +14,7 @@ $Mode = $null
 $Remote = $null
 $Port = 8790
 $Tag = 'latest'
+$SkipPull = $false
 for ($i = 0; $i -lt $Arguments.Count; $i++) {
     switch ($Arguments[$i]) {
         '--detached' { $Mode = 'detached' }
@@ -22,6 +23,7 @@ for ($i = 0; $i -lt $Arguments.Count; $i++) {
         '--remote' { $Remote = $Arguments[++$i] }
         '--port' { $Port = [int]$Arguments[++$i] }
         '--tag' { $Tag = $Arguments[++$i] }
+        '--skip-pull' { $SkipPull = $true }
         default { Write-Host "Unknown option: $($Arguments[$i])" -ForegroundColor Red; exit 2 }
     }
 }
@@ -74,9 +76,16 @@ function Check-Runtime {
 function Start-Monitor {
     Use-Target
     Check-Runtime
-    Write-Host "Pulling ghcr.io/ding-ding-projects/printer-door-monitor:$script:Tag..."
-    docker compose -f $Compose pull 2>&1 | Out-Host
-    if ($LASTEXITCODE -ne 0) { Fail 'the image could not be pulled. Check the network and the version given with --tag.' }
+    if ($script:SkipPull) {
+        # An image built or loaded on the host already, for example while a release is pending.
+        docker image inspect "ghcr.io/ding-ding-projects/printer-door-monitor:$script:Tag" *> $null
+        if ($LASTEXITCODE -ne 0) { Fail "--skip-pull was given, but ghcr.io/ding-ding-projects/printer-door-monitor:$script:Tag is not on $(Target-Name)." }
+        Write-Host "Using ghcr.io/ding-ding-projects/printer-door-monitor:$script:Tag already on $(Target-Name)."
+    } else {
+        Write-Host "Pulling ghcr.io/ding-ding-projects/printer-door-monitor:$script:Tag..."
+        docker compose -f $Compose pull 2>&1 | Out-Host
+        if ($LASTEXITCODE -ne 0) { Fail 'the image could not be pulled. Check the network and the version given with --tag.' }
+    }
     Write-Host 'Starting...'
     docker compose -f $Compose up -d 2>&1 | Out-Host
     if ($LASTEXITCODE -ne 0) { Fail "the monitor did not start. If port $script:Port is taken, run again with --port and another number." }

@@ -125,7 +125,14 @@ ipcMain.handle('install', async (event, opts) => {
   say('phase', 'pull');
   const pull = await run(['compose', '-f', file, 'pull'], opts, (l) => say('log', l));
   if (cancelled) return { ok: false, step: 'cancelled', started: false };
-  if (pull.code !== 0) return { ok: false, step: 'pull' };
+  if (pull.code !== 0) {
+    // Without the registry (offline, or before a version is published) an image already on
+    // the target still works; say so rather than fail.
+    const image = `ghcr.io/ding-ding-projects/printer-door-monitor:${opts.tag || 'latest'}`;
+    const present = await run(['image', 'inspect', '--format', '{{.Id}}', image], opts);
+    if (present.code !== 0) return { ok: false, step: 'pull' };
+    say('log', `Could not pull ${image}; using the copy already on the target.`);
+  }
   say('phase', 'start');
   const up = await run(['compose', '-f', file, 'up', '-d'], opts, (l) => say('log', l));
   if (up.code !== 0) return { ok: false, step: 'start' };
