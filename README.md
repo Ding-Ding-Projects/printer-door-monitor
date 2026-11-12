@@ -59,6 +59,28 @@ The page starts with a short setup:
 3. **Chimes.** Turn the chime on, pick one for opening and one for closing, try each with
    Preview, and choose which doors ring. This step can be skipped.
 
+### Set up from Bambu Studio in one click
+
+The Device page of the Material Design build of Bambu Studio has a **Door monitor** section in
+its Door chime card. **Set up door monitor** does all of the above without any typing: it runs the
+published image on this computer or on a Docker host over SSH, waits for it to be healthy, fills in
+the printer selected in Bambu Studio (IP address, serial number, LAN access code) and the chimes
+chosen in the card, and opens the page already signed in. It sets a random password only when the
+monitor has none, and never replaces one someone already chose.
+
+This works through `docker exec`: the server writes a random provisioning key into its data
+volume at every start, and `node src/provision-cli.mjs`, run inside the container, sends the
+settings to the server over the container's own loopback with that key. Only someone who can
+already run commands in the container can use it. The answer carries a one-time sign-in link that
+works once, within five minutes:
+
+```sh
+echo '{}' | docker exec -i printer-door-monitor node src/provision-cli.mjs
+```
+
+The request takes `password`, `printer` (`host`, `serial`, `accessCode`), `chime` (`enabled`,
+`open`, `close`, `doors`) and `setupDone`, all optional; `{}` only asks for a new sign-in link.
+
 ## How it works
 
 The monitor connects to the printer's MQTT service on port 8883 with TLS, as user `bblp` with

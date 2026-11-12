@@ -9,7 +9,9 @@ import { fileURLToPath } from 'node:url';
 import { CLOSE_CHIMES, OPEN_CHIMES, chimeGcode, findChime } from './chimes.mjs';
 import { mayPlay } from './door.mjs';
 import { PrinterLink } from './printer.mjs';
+import { KEY_HEADER, LoginLinks, applyProvision, fromLoopback, keyMatches, writeKey } from './provision.mjs';
 import { COOKIE, issue, readCookie, valid } from './session.mjs';
+import { checkPrinter, mergeChime, validPassword } from './settings.mjs';
 import { Store } from './store.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -20,6 +22,8 @@ const VERSION = process.env.APP_VERSION || 'dev';
 
 const store = new Store(DATA);
 await store.load();
+const provisionKey = await writeKey(DATA);
+const loginLinks = new LoginLinks();
 const printer = new PrinterLink();
 const streams = new Set();
 const openedAt = {};
@@ -103,10 +107,6 @@ function chimeLists() {
   return { open: shape(OPEN_CHIMES), close: shape(CLOSE_CHIMES) };
 }
 
-function validPassword(password) {
-  return typeof password === 'string' && password.length >= 8 && password.length <= 200;
-}
-
 async function route(req, res) {
   const url = new URL(req.url, 'http://localhost');
   const p = url.pathname;
@@ -116,6 +116,27 @@ async function route(req, res) {
     return send(res, 200, await readFile(path.join(PUBLIC, file), 'utf8'), { 'content-type': type, 'cache-control': 'no-cache' });
   }
   if (req.method === 'GET' && p === '/healthz') return send(res, 200, { ok: true, version: VERSION });
+
+  // A one-time sign-in link from provisioning: signs this browser in and opens the monitor.
+  // A used or expired link just lands on the sign-in screen.
+  if (req.method === 'GET' && p.startsWith('/login/')) {
+    const ok = store.hasPassword() && loginLinks.use(p.slice('/login/'.length));
+    return send(res, 302, '', { location: '/', ...(ok ? { 'set-cookie': sessionCookie(issue(store.config.sessionKey)) } : {}) });
+  }
+  if (req.method === 'POST' && p === '/api/provision') {
+    if (!fromLoopback(req.socket.remoteAddress) || !keyMatches(provisionKey, req.headers[KEY_HEADER])) return send(res, 403, { error: 'forbidden' });
+    const result = await applyProvision(store, await body(req));
+    if (result.error) return send(res, 400, result);
+    if (result.printerChanged) applyPrinterSettings();
+    return send(res, 200, {
+      ok: true,
+      passwordSet: result.passwordSet,
+      hasPassword: store.hasPassword(),
+      login: store.hasPassword() ? `/login/${loginLinks.issue()}` : null,
+      settings: store.publicSettings(),
+      version: VERSION,
+    });
+  }
 
   if (req.method === 'GET' && p === '/api/session') {
     return send(res, 200, { needsPassword: !store.hasPassword(), authed: authed(req), version: VERSION });
@@ -160,26 +181,15 @@ async function route(req, res) {
     return;
   }
   if (req.method === 'POST' && p === '/api/printer') {
-    const { host, serial, accessCode } = await body(req);
-    const clean = (v) => (typeof v === 'string' ? v.trim() : '');
-    if (!/^[A-Za-z0-9.\-:]{1,253}$/.test(clean(host))) return send(res, 400, { error: 'host' });
-    if (!/^[A-Za-z0-9]{6,40}$/.test(clean(serial))) return send(res, 400, { error: 'serial' });
-    const code = clean(accessCode);
-    if (code && !/^[A-Za-z0-9]{4,32}$/.test(code)) return send(res, 400, { error: 'access-code' });
-    store.config.printer = { host: clean(host), serial: clean(serial).toUpperCase(), accessCode: code || store.config.printer.accessCode };
-    if (!store.config.printer.accessCode) return send(res, 400, { error: 'access-code' });
+    const checked = checkPrinter(await body(req), store.config.printer);
+    if (checked.error) return send(res, 400, { error: checked.error });
+    store.config.printer = checked.printer;
     await store.save();
     applyPrinterSettings();
     return send(res, 200, { ok: true, settings: store.publicSettings() });
   }
   if (req.method === 'POST' && p === '/api/chime') {
-    const input = await body(req);
-    const chime = { ...store.config.chime };
-    if (typeof input.enabled === 'boolean') chime.enabled = input.enabled;
-    if (typeof input.open === 'string' && OPEN_CHIMES.some((c) => c.id === input.open)) chime.open = input.open;
-    if (typeof input.close === 'string' && CLOSE_CHIMES.some((c) => c.id === input.close)) chime.close = input.close;
-    if (Array.isArray(input.doors)) chime.doors = input.doors.filter((d) => ['front', 'top', 'left', 'right'].includes(d));
-    store.config.chime = chime;
+    store.config.chime = mergeChime(store.config.chime, await body(req));
     await store.save();
     return send(res, 200, { ok: true, settings: store.publicSettings() });
   }

@@ -1,6 +1,6 @@
 {
   "name": "printer-door-monitor",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Watches the doors of a Bambu Lab printer over its LAN link, logs every opening and closing, and can ring a chime on the printer.",
   "type": "module",
