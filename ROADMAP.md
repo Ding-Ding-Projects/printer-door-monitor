@@ -1,5 +1,10 @@
 # Roadmap
 
+## Setup from another app, 1.1.0
+
+- [x] Let Bambu Studio set the printer, chimes and a first password through docker exec, never replacing a chosen password.
+- [x] Answer with a one-time sign-in link so the page opens signed in.
+
 ## First version
 
 - [x] Watch the four door sensors over the printer's LAN MQTT link, with first-run setup and a password.

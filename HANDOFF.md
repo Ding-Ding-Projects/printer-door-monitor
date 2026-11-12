@@ -1,5 +1,19 @@
 # Handoff
 
+## Setup from another app, 1.1.0, 12 November 2026
+
+Bambu Studio MD3 can now set the monitor up in one click. `src/provision-cli.mjs`, run inside the
+container with `docker exec -i`, posts a request to `/api/provision` over the container's
+loopback with a random key the server writes to `/data/provision.key` at every start. The request
+may set the printer, the chimes, `setupDone`, and a password only when none exists; the answer
+carries a one-time sign-in link (`/login/<token>`, five minutes, single use). Printer and chime
+checks moved into `src/settings.mjs`, shared with the browser setup.
+
+Checked: `npm test` (15 tests, including a watched failure of the never-replace-a-password test),
+the route against a local server (wrong key 403, link signs in once, reuse gives no cookie), and
+Bambu Studio's Set up door monitor against image 1.1.0 on this computer and on a Docker host over
+SSH: both healthy, password set, chimes on, link works from the LAN address.
+
 ## First version, 12 November 2026
 
 Printer Door Monitor: a Docker-hosted web app that watches the doors of a Bambu Lab printer
