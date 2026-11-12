@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Printer Door Monitor</title>
+<meta name="description" content="Watch the doors of a Bambu Lab printer, log every opening and closing, and ring a chime on the printer.">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style>
+  :root { --p:#1b6b52; --op:#fff; --pc:#a6f2d0; --opc:#002116; --s:#f6faf6; --sc:#eaefea; --sh:#e2e8e3; --on:#171d1a; --onv:#404944; --ov:#c0c9c3; --open:#b3261e; color-scheme: light; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --p:#8bd6b4; --op:#003827; --pc:#005139; --opc:#a6f2d0; --s:#0f1512; --sc:#1b211e; --sh:#252b28; --on:#dee4df; --onv:#c0c9c3; --ov:#404944; --open:#ffb4ab; color-scheme: dark; } }
+  :root[data-theme="dark"] { --p:#8bd6b4; --op:#003827; --pc:#005139; --opc:#a6f2d0; --s:#0f1512; --sc:#1b211e; --sh:#252b28; --on:#dee4df; --onv:#c0c9c3; --ov:#404944; --open:#ffb4ab; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--s); color: var(--on); font: 16px/1.6 "Segoe UI", Roboto, system-ui, sans-serif; }
+  header { background: var(--sc); padding: 16px; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 16px; }
+  header .wrap { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 0; }
+  header h1 { font-size: 20px; margin: 0; flex: 1; min-width: 180px; }
+  nav { display: flex; gap: 6px; flex-wrap: wrap; }
+  nav button { font: inherit; font-size: 14px; border: 0; border-radius: 999px; padding: 8px 14px; background: var(--sh); color: var(--on); cursor: pointer; min-height: 40px; }
+  nav button[aria-selected="true"] { background: var(--p); color: var(--op); }
+  nav button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid var(--p); outline-offset: 2px; }
+  .hero { padding: 32px 0 8px; }
+  .hero h2 { font-size: 30px; line-height: 1.2; margin: 0 0 12px; }
+  .lead { font-size: 18px; color: var(--onv); max-width: 720px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 20px 0; }
+  .card { background: var(--sc); border-radius: 16px; padding: 18px; }
+  .card h3 { margin: 0 0 6px; font-size: 17px; }
+  .card p { margin: 0; color: var(--onv); font-size: 15px; }
+  .btn { display: inline-block; background: var(--p); color: var(--op); text-decoration: none; padding: 10px 20px; border-radius: 999px; margin: 6px 8px 6px 0; }
+  .btn.tonal { background: var(--pc); color: var(--opc); }
+  section.tab { padding: 8px 0 40px; }
+  section.tab[hidden] { display: none; }
+  h2 { font-size: 24px; margin: 24px 0 8px; } h3 { font-size: 18px; margin: 20px 0 6px; }
+  code, pre { font-family: Consolas, "Cascadia Mono", monospace; font-size: 14px; }
+  pre { background: var(--sc); padding: 12px; border-radius: 10px; overflow: auto; }
+  code { background: var(--sh); padding: 1px 5px; border-radius: 4px; }
+  pre code { background: none; padding: 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; } td, th { text-align: left; padding: 8px; border-bottom: 1px solid var(--ov); vertical-align: top; }
+  .steps { counter-reset: s; list-style: none; padding: 0; }
+  .steps li { counter-increment: s; position: relative; padding: 0 0 14px 44px; }
+  .steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 30px; height: 30px; border-radius: 50%; background: var(--p); color: var(--op); display: grid; place-items: center; font-weight: 600; }
+  .doors { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; max-width: 360px; }
+  .door { border-radius: 12px; padding: 10px; background: var(--sh); cursor: pointer; border: 0; font: inherit; color: var(--on); text-align: left; min-height: 64px; }
+  .door.open { background: #f9dedc; color: #b3261e; }
+  .door strong { display: block; font-size: 18px; }
+  .demo-log { font-size: 14px; color: var(--onv); min-height: 3em; }
+  .search { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--onv); background: var(--s); color: var(--on); font: inherit; min-height: 44px; margin: 8px 0; }
+  footer { color: var(--onv); font-size: 14px; padding: 24px 0 40px; }
+  a { color: var(--p); }
+  @media (prefers-reduced-motion: no-preference) { .door { transition: background .2s, color .2s; } }
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <img src="icon.svg" alt="" width="32" height="32">
+  <h1>Printer Door Monitor</h1>
+  <nav role="tablist" aria-label="Sections">
+    <button role="tab" data-tab="home" aria-selected="true">Overview</button>
+    <button role="tab" data-tab="install" aria-selected="false">Install</button>
+    <button role="tab" data-tab="use" aria-selected="false">Use it</button>
+    <button role="tab" data-tab="how" aria-selected="false">How it works</button>
+    <button role="tab" data-tab="help" aria-selected="false">Troubleshooting</button>
+  </nav>
+</div></header>
+
+<main class="wrap">
+<section class="tab" id="home">
+  <div class="hero">
+    <h2>Know when the printer door opens, and hear it too.</h2>
+    <p class="lead">A small web app for your Docker host that watches the doors of a Bambu Lab printer, logs every opening and closing, and can ring a chime on the printer's own buzzer. It keeps watching with every computer closed.</p>
+    <a class="btn" href="https://github.com/Ding-Ding-Projects/printer-door-monitor/releases/latest">Download the setup wizard</a>
+    <a class="btn tonal" href="https://github.com/Ding-Ding-Projects/printer-door-monitor">Source</a>
+  </div>
+  <div class="cards">
+    <div class="card"><h3>Every door</h3><p>Front door, top cover, left and right doors, each shown open or closed as soon as the printer reports it.</p></div>
+    <div class="card"><h3>A door log</h3><p>Every opening and closing with the time, how long the door stayed open, and what the chime did. Search it, with regular expressions if you like.</p></div>
+    <div class="card"><h3>Door chimes</h3><p>Seven chimes for opening and seven for closing, from a classic ding-dong to the Westminster phrases. Preview them on the printer. They wait while it prints.</p></div>
+    <div class="card"><h3>Runs anywhere with Docker</h3><p>One image for x86-64 and ARM64. Install it with a GUI wizard, a double-click on host.bat, or Docker Compose.</p></div>
+  </div>
+  <h2>Try the door log</h2>
+  <p>This demo runs in your browser only. Click a door to open or close it and watch the log, the way the monitor records a real printer.</p>
+  <div class="doors" id="demo-doors"></div>
+  <p class="demo-log" id="demo-log" aria-live="polite">No door has moved yet.</p>
+</section>
+
+<section class="tab" id="install" hidden>
+  <h2>Install</h2>
+  <p>All three ways use the published image <code>ghcr.io/ding-ding-projects/printer-door-monitor</code> and the same <code>compose.yaml</code>. Settings and the door log live in the <code>door-monitor-data</code> volume and survive updates.</p>
+  <h3>With the setup wizard</h3>
+  <ol class="steps">
+    <li>Download <code>PrinterDoorMonitorSetup-&lt;version&gt;.exe</code> from the latest release. It is one portable file; nothing else to install.</li>
+    <li>Choose <strong>A Docker host over SSH</strong> (an SSH target such as <code>docker@my-docker-host</code>, using your SSH key) or <strong>This computer</strong>, and press <strong>Check Docker</strong>.</li>
+    <li>Pick the port (8790 by default) and the version, then <strong>Install</strong>. The wizard pulls the image, starts it, waits for the health check and opens the page from your computer.</li>
+    <li>Open the address it shows and finish the first-run setup.</li>
+  </ol>
+  <h3>With host.bat</h3>
+  <p>Double-click <code>host.bat</code> for a menu, or use the options:</p>
+<pre><code>host.bat --detached
+host.bat --logs
+host.bat --detached --remote docker@my-docker-host
+host.bat --stop --remote docker@my-docker-host
+host.bat --detached --port 8791 --tag 1.0.0</code></pre>
+  <p><code>--logs</code> shows the status and the logs: <kbd>F</kbd> pauses or resumes, <kbd>S</kbd> switches the service, <kbd>R</kbd> refreshes, <kbd>Q</kbd> leaves and keeps the monitor running.</p>
+  <h3>With Docker Compose</h3>
+<pre><code>docker compose pull
+docker compose up -d</code></pre>
+  <p>Set <code>DOOR_MONITOR_PORT</code> and <code>DOOR_MONITOR_TAG</code> to change the port and the version.</p>
+</section>
+
+<section class="tab" id="use" hidden>
+  <h2>First run</h2>
+  <ol class="steps">
+    <li><strong>Password.</strong> The first visitor chooses the password for the page.</li>
+    <li><strong>Printer.</strong> Enter the printer's IP address, serial number and LAN access code from its screen. The monitor connects at once and shows whether it worked. The access code stays on the server and is never shown again.</li>
+    <li><strong>Chimes.</strong> Turn the chime on, pick the opening and closing chimes, try them with Preview, and choose which doors ring. You can skip this.</li>
+  </ol>
+  <h2>The page</h2>
+  <ul>
+    <li><strong>Doors:</strong> each door open, closed or not reported, with the print state and the time of the last report.</li>
+    <li><strong>Door chime:</strong> the switch, both chimes with Preview, and the doors that ring.</li>
+    <li><strong>Settings:</strong> language (English, Cantonese or both), theme, and the printer connection.</li>
+    <li><strong>Door log:</strong> newest first, with a search box and a regular expression switch.</li>
+  </ul>
+  <h2>The chimes</h2>
+  <table>
+    <tr><th>Door opens</th><th>Door closes</th></tr>
+    <tr><td>Ding-dong (default)</td><td>Dong-ding (default)</td></tr>
+    <tr><td>Welcome rise</td><td>Falling arpeggio</td></tr>
+    <tr><td>Shop bell</td><td>Westminster, closing phrase</td></tr>
+    <tr><td>Westminster, first phrase</td><td>Goodnight</td></tr>
+    <tr><td>Hello chirp</td><td>Soft latch</td></tr>
+    <tr><td>Marimba up</td><td>Double tap</td></tr>
+    <tr><td>Single ping</td><td>Bye chirp</td></tr>
+    <tr><td>Silent</td><td>Silent</td></tr>
+  </table>
+</section>
+
+<section class="tab" id="how" hidden>
+  <h2>How it works</h2>
+  <p>The monitor connects to the printer's MQTT service on port 8883 with TLS, as user <code>bblp</code> with the LAN access code, subscribes to <code>device/&lt;serial&gt;/report</code> and asks for a full report.</p>
+  <p>It reads the doors from bits 23 to 26 of <code>print.stat</code> (front door, top cover, left door, right door), falls back to bit 23 of <code>print.home_flag</code> for the front door, and reads door detection support from bit 12 of <code>print.fun</code>. This is the decoding Bambu Studio uses; the printer maker does not document it. The first reading after connecting only records the state, so a door that is already open is not an opening.</p>
+  <p>A chime is a <code>gcode_line</code> command: <code>M17</code>, <code>M400 S1</code>, one <code>M1006</code> line per note on all three buzzer voices, <code>M1006 W</code>, <code>M18</code>. It turns the motors on and releases them, so it is never sent while the printer is running, paused, preparing or slicing.</p>
+  <p>The page is protected by a password (scrypt hash) and a signed session cookie. The settings, the password hash and the door log are files in the data volume.</p>
+</section>
+
+<section class="tab" id="help" hidden>
+  <h2>Troubleshooting</h2>
+  <h3>Connection problem with the right details</h3>
+  <p>Some printer firmware only accepts LAN connections from other software in LAN-only mode or with developer mode on. Check that setting on the printer screen, then press <strong>Save and connect</strong> again.</p>
+  <h3>Doors show "Not reported"</h3>
+  <p>The printer has not sent a door reading yet, or it has no door detection. The page says so when the printer reports no door detection.</p>
+  <h3>The chime did not play</h3>
+  <p>Look at the log: "waited, printing" means the printer was busy; "printer not connected" means the link was down. Preview tells you the same at once.</p>
+  <h3>The page does not open from another computer</h3>
+  <p>Check the firewall on the Docker host and that the port is free. <code>host.bat --logs</code> shows what the monitor is doing.</p>
+</section>
+</main>
+<footer class="wrap">Printer Door Monitor · <a href="https://github.com/Ding-Ding-Projects/printer-door-monitor">GitHub</a></footer>
+
+<script>
+  const tabs = document.querySelectorAll('nav [role=tab]');
+  function select(id) {
+    for (const t of tabs) t.setAttribute('aria-selected', String(t.dataset.tab === id));
+    for (const s of document.querySelectorAll('section.tab')) s.hidden = s.id !== id;
+    history.replaceState(null, '', '#' + id);
+  }
+  tabs.forEach((t) => t.addEventListener('click', () => select(t.dataset.tab)));
+  if (location.hash && document.getElementById(location.hash.slice(1))) select(location.hash.slice(1));
+
+  const names = { front: 'Front door', top: 'Top cover', left: 'Left door', right: 'Right door' };
+  const open = { front: false, top: false, left: false, right: false };
+  const since = {};
+  const box = document.getElementById('demo-doors');
+  const log = document.getElementById('demo-log');
+  function draw() {
+    box.replaceChildren(...Object.keys(names).map((d) => {
+      const b = document.createElement('button');
+      b.className = 'door' + (open[d] ? ' open' : '');
+      b.innerHTML = '';
+      b.append(names[d], Object.assign(document.createElement('strong'), { textContent: open[d] ? 'Open' : 'Closed' }));
+      b.addEventListener('click', () => {
+        open[d] = !open[d];
+        const now = Date.now();
+        let line = `${new Date(now).toLocaleTimeString()} · ${names[d]} ${open[d] ? 'opened' : 'closed'}`;
+        if (open[d]) since[d] = now; else line += ` after ${Math.round((now - since[d]) / 1000)} s`;
+        line += open[d] ? ' · chime: Ding-dong (demo, nothing is sent)' : ' · chime: Dong-ding (demo, nothing is sent)';
+        log.textContent = line;
+        draw();
+      });
+      return b;
+    }));
+  }
+  draw();
+</script>
+</body>
+</html>

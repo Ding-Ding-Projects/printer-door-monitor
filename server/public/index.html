@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Printer Door Monitor</title>
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="top">
+    <img src="/icon.svg" alt="" class="logo" width="28" height="28">
+    <h1 id="app-name">Printer Door Monitor</h1>
+    <span id="conn" class="chip" role="status" aria-live="polite"></span>
+    <button id="sign-out" class="text-btn" hidden></button>
+  </header>
+  <main id="root" aria-live="polite"></main>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

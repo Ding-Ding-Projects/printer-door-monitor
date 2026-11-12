@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<title>Printer Door Monitor setup</title>
+<style>
+  :root { --p:#8bd6b4; --op:#003827; --pc:#005139; --opc:#a6f2d0; --s:#0f1512; --sc:#1b211e; --sh:#252b28; --on:#dee4df; --onv:#c0c9c3; --bad:#ffb4ab; --ok:#8bd6b4; color-scheme: dark; }
+  @media (prefers-color-scheme: light) { :root { --p:#1b6b52; --op:#fff; --pc:#a6f2d0; --opc:#002116; --s:#f6faf6; --sc:#eaefea; --sh:#e2e8e3; --on:#171d1a; --onv:#404944; --bad:#b3261e; --ok:#1b6b52; color-scheme: light; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--s); color: var(--on); font: 15px/1.5 "Segoe UI", system-ui, sans-serif; display: flex; flex-direction: column; height: 100vh; }
+  header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; background: var(--sc); }
+  header h1 { font-size: 18px; margin: 0; }
+  .steps { display: flex; gap: 6px; padding: 12px 20px 0; }
+  .steps span { flex: 1; text-align: center; font-size: 12px; padding: 6px; border-radius: 999px; background: var(--sh); color: var(--onv); }
+  .steps span.on { background: var(--p); color: var(--op); } .steps span.done { background: var(--pc); color: var(--opc); }
+  main { flex: 1; overflow: auto; padding: 16px 20px; }
+  h2 { font-size: 20px; margin: 4px 0 8px; }
+  label { display: block; font-size: 13px; color: var(--onv); margin: 12px 0 4px; }
+  input[type=text], input[type=number] { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--onv); background: var(--s); color: var(--on); font: inherit; min-height: 44px; }
+  .choice { display: flex; gap: 10px; align-items: flex-start; padding: 12px; border-radius: 12px; background: var(--sc); margin: 8px 0; cursor: pointer; }
+  .choice input { margin-top: 4px; accent-color: var(--p); }
+  .hint { font-size: 13px; color: var(--onv); }
+  .ok { color: var(--ok); } .bad { color: var(--bad); }
+  ul.checks { list-style: none; padding: 0; } ul.checks li { padding: 4px 0; }
+  pre { background: var(--sc); padding: 10px; border-radius: 8px; max-height: 220px; overflow: auto; font-size: 12px; white-space: pre-wrap; word-break: break-all; }
+  footer { display: flex; justify-content: space-between; gap: 8px; padding: 12px 20px; background: var(--sc); }
+  button { font: inherit; min-height: 40px; padding: 8px 20px; border-radius: 999px; border: 0; cursor: pointer; }
+  .filled { background: var(--p); color: var(--op); } .text { background: transparent; color: var(--p); }
+  button:disabled { opacity: .45; cursor: default; }
+  button:focus-visible, input:focus-visible, .choice:focus-within { outline: 3px solid var(--p); outline-offset: 2px; }
+  a { color: var(--p); }
+</style>
+</head>
+<body>
+  <header><h1>Printer Door Monitor setup</h1></header>
+  <div class="steps" id="steps" aria-label="Setup steps"></div>
+  <main id="page" aria-live="polite"></main>
+  <footer>
+    <button class="text" id="back">Back</button>
+    <div><button class="text" id="cancel" hidden>Cancel</button> <button class="filled" id="next">Next</button></div>
+  </footer>
+  <script src="renderer.js"></script>
+</body>
+</html>

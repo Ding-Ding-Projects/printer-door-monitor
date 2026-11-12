@@ -1,0 +1,40 @@
+name: Setup wizard release
+
+on:
+  push:
+    branches: [main]
+    paths: ['wizard/**', 'compose.yaml', 'host.bat', 'scripts/**', 'server/package.json', '.github/workflows/release.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  wizard:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build the portable setup wizard
+        shell: bash
+        run: |
+          cp compose.yaml wizard/compose.yaml
+          cd wizard
+          npm ci
+          npm run dist
+          ls dist
+      - name: Publish a normal release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version=$(node -p "require('./wizard/package.json').version")
+          tag="v${version}-${GITHUB_RUN_NUMBER}"
+          exe=$(ls wizard/dist/PrinterDoorMonitorSetup-*.exe)
+          sha256sum "$exe" > "$exe.sha256"
+          gh release create "$tag" "$exe" "$exe.sha256" compose.yaml host.bat scripts/host.ps1 \
+            --title "Printer Door Monitor ${version} (build ${GITHUB_RUN_NUMBER})" \
+            --notes "Portable setup wizard, compose.yaml, host.bat and its script for commit ${GITHUB_SHA::12}. The wizard deploys ghcr.io/ding-ding-projects/printer-door-monitor with Docker Compose on this computer or on a Docker host over SSH." \
+            --target "$GITHUB_SHA"

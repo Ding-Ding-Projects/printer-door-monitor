@@ -1,0 +1,24 @@
+{
+  "name": "printer-door-monitor-setup",
+  "productName": "Printer Door Monitor Setup",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Deploys the Printer Door Monitor with Docker Compose on this computer or on a Docker host over SSH.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win portable --x64 --publish never"
+  },
+  "build": {
+    "appId": "com.dingdingprojects.printerdoormonitor.setup",
+    "productName": "Printer Door Monitor Setup",
+    "files": ["main.js", "preload.js", "index.html", "renderer.js", "compose.yaml"],
+    "win": { "target": "portable" },
+    "portable": { "artifactName": "PrinterDoorMonitorSetup-${version}.exe" },
+    "directories": { "output": "dist" }
+  },
+  "devDependencies": {
+    "electron": "33.4.11",
+    "electron-builder": "25.1.8"
+  }
+}

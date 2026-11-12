@@ -1,0 +1,17 @@
+# Printer Door Monitor. Pull and start with:
+#   docker compose pull && docker compose up -d
+# Then open http://<this computer's LAN IP>:8790/ and finish the setup in the browser.
+# The printer IP, serial number and LAN access code are entered in that setup screen
+# and kept in the door-monitor-data volume, never in this file.
+name: printer-door-monitor
+services:
+  door-monitor:
+    image: ghcr.io/ding-ding-projects/printer-door-monitor:${DOOR_MONITOR_TAG:-latest}
+    container_name: printer-door-monitor
+    restart: unless-stopped
+    ports:
+      - "${DOOR_MONITOR_PORT:-8790}:8790"
+    volumes:
+      - door-monitor-data:/data
+volumes:
+  door-monitor-data:

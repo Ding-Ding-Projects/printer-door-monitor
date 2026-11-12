@@ -1,0 +1,4 @@
+node_modules/
+data/
+wizard/dist/
+wizard/compose.yaml

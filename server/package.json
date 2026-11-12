@@ -1,0 +1,18 @@
+{
+  "name": "printer-door-monitor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Watches the doors of a Bambu Lab printer over its LAN link, logs every opening and closing, and can ring a chime on the printer.",
+  "type": "module",
+  "main": "src/server.mjs",
+  "scripts": {
+    "start": "node src/server.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "mqtt": "5.10.1"
+  }
+}
